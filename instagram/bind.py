@@ -113,7 +113,7 @@ def bind_method(**config):
             if self.pagination_format == 'dict':
                 return pagination
             raise Exception('Invalid value for pagination_format: %s' % self.pagination_format)
-          
+
         def _do_api_request(self, url, method="GET", body=None, headers=None):
             headers = headers or {}
             if self.signature and self.api.client_ips != None and self.api.client_secret != None:
@@ -122,13 +122,14 @@ def bind_method(**config):
                 signature = hmac.new(secret, ips, sha256).hexdigest()
                 headers['X-Insta-Forwarded-For'] = '|'.join([ips, signature])
 
-            response, content = OAuth2Request(self.api).make_request(url, method=method, body=body, headers=headers)
-            if response['status'] == '503' or response['status'] == '429':
-                raise InstagramAPIError(response['status'], "Rate limited", "Your client is making too many request per second")
+            response =  OAuth2Request(self.api, url=url, method=method, params=body, headers=headers).make_request()
+
+            if response.status_code == '503' or response.status_code == '429':
+                raise InstagramAPIError(response, "Rate limited", "Your client is making too many request per second")
             try:
-                content_obj = simplejson.loads(content)
+                content_obj = response.json()
             except ValueError:
-                raise InstagramClientError('Unable to parse response, not valid JSON.', status_code=response['status'])
+                raise InstagramClientError('Unable to parse response, not valid JSON.', status_code=response.status_code)
             # Handle OAuthRateLimitExceeded from Instagram's Nginx which uses different format to documented api responses
             if 'meta' not in content_obj:
                 if content_obj.get('code') == 420 or content_obj.get('code') == 429:
@@ -137,8 +138,9 @@ def bind_method(**config):
                 raise InstagramAPIError(content_obj.get('code'), content_obj.get('error_type'), content_obj.get('error_message'))
             api_responses = []
             status_code = content_obj['meta']['code']
-            self.api.x_ratelimit_remaining = response.get("x-ratelimit-remaining",None)
-            self.api.x_ratelimit = response.get("x-ratelimit-limit",None)
+            self.api.x_ratelimit_remaining = response.headers.get("x-ratelimit-remaining", None)
+            self.api.x_ratelimit = response.headers.get("x-ratelimit-limit", None)
+
             if status_code == 200:
                 if not self.objectify_response:
                     return content_obj, None
@@ -162,8 +164,7 @@ def bind_method(**config):
             else:
                 raise InstagramAPIError(status_code, content_obj['meta']['error_type'], content_obj['meta']['error_message'])
 
-        def _paginator_with_url(self, url, method="GET", body=None, headers=None):
-            headers = headers or {}
+        def _paginator_with_url(self, url, method="GET", body=None):
             pages_read = 0
             while url and (self.max_pages is None or pages_read < self.max_pages):
                 api_responses, url = self._do_api_request(url, method, body, headers)
@@ -171,22 +172,25 @@ def bind_method(**config):
                 yield api_responses, url
             return
 
-        def _get_with_next_url(self, url, method="GET", body=None, headers=None):
-            headers = headers or {}
-            content, next = self._do_api_request(url, method, body, headers)
+        def _get_with_next_url(self, url, method="GET", body=None):
+            content, next = self._do_api_request(url, method, body)
             return content, next
 
         def execute(self):
-            url, method, body, headers = OAuth2Request(self.api).prepare_request(self.method,
-                                                                                 self.path,
-                                                                                 self.parameters,
-                                                                                 include_secret=self.include_secret)
+            request = OAuth2Request(
+                self.api,
+                method=self.method,
+                path=self.path,
+                params=self.parameters,
+                include_secret=self.include_secret)
+            request.make_request()
+
             if self.with_next_url:
-                return self._get_with_next_url(self.with_next_url, method, body, headers)
+                return self._get_with_next_url(self.with_next_url, request.method, request.params)
             if self.as_generator:
-                return self._paginator_with_url(url, method, body, headers)
+                return self._paginator_with_url(request.url, request.method, request.params)
             else:
-                content, next = self._do_api_request(url, method, body, headers)
+                content, next = self._do_api_request(request.url, request.method, request.params)
             if self.paginates:
                 return content, next
             else:
