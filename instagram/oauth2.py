@@ -149,7 +149,7 @@ class OAuth2Request(object):
             auth_params[self.api.access_token_field] = self.api.access_token
         elif self.api.client_id:
             auth_params["client_id"] = self.api.client_id
-            if include_secret:
+            if self.include_secret:
                 auth_params["client_secret"] = self.api.client_secret
         self.params.update(auth_params)
 
