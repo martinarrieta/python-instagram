@@ -121,6 +121,8 @@ class OAuth2Request(object):
         if self.params.has_key('files'):
             self.files = params['files']
             del self.params['files']
+        else:
+            self.files = None
 
         self._full_url()
         self._auth_params()
@@ -128,7 +130,6 @@ class OAuth2Request(object):
         self.content = None
         self.content_json = None
         self.request = None
-        self.files = None
 
     def _generate_sig(self):
         sig = self.path
