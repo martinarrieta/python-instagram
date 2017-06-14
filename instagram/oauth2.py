@@ -128,7 +128,7 @@ class OAuth2Request(object):
         self.content = None
         self.content_json = None
         self.request = None
-
+        self.files = None
 
     def _generate_sig(self):
         sig = self.path
