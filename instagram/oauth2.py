@@ -108,7 +108,7 @@ class OAuth2AuthExchangeRequest(object):
         return content
 
 class OAuth2Request(object):
-    def __init__(self, api, path=None, method="GET", params=None, url=None, include_secret=None, headers=None, include_signed_request=None):
+    def __init__(self, api, path=None, method="GET", params=None, url=None, include_secret=False, headers=None, include_signed_request=None):
         self.api = api
         self.path = path
         self.method = method
