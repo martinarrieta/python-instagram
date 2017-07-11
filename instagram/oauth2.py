@@ -118,7 +118,7 @@ class OAuth2Request(object):
         self.include_signed_request = include_signed_request
         self.headers = headers
 
-        if self.params.has_key('files'):
+        if 'files' in self.params:
             self.files = params['files']
             del self.params['files']
         else:
