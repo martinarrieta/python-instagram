@@ -80,7 +80,7 @@ def bind_method(**config):
                 except IndexError:
                     raise InstagramClientError("Too many arguments supplied")
 
-            for key, value in six.iteritems(kwargs):
+            for key, value in six.items(kwargs):
                 if value is None:
                     continue
                 if key in self.parameters:
