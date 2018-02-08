@@ -54,6 +54,7 @@ def bind_method(**config):
         include_secret = config.get("include_secret", False)
         objectify_response = config.get("objectify_response", True)
         exclude_format = config.get('exclude_format', False)
+        return_json = config.get("return_json", False)
 
         def __init__(self, api, *args, **kwargs):
             self.api = api
@@ -62,7 +63,6 @@ def bind_method(**config):
                 self.pagination_format = 'next_url'
             else:
                 self.pagination_format = kwargs.pop('pagination_format', 'next_url')
-            self.return_json = kwargs.pop("return_json", False)
             self.max_pages = kwargs.pop("max_pages", 3)
             self.with_next_url = kwargs.pop("with_next_url", None)
             self.parameters = {}
